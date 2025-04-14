@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
@@ -27,7 +27,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ username }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/user/${username}`);
       setUserData(response.data);
@@ -37,11 +37,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ username }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [username]);
 
   useEffect(() => {
     fetchUserData();
-  }, [username]);
+  }, [fetchUserData]);
 
   if (loading) {
     return (
