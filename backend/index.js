@@ -10,7 +10,6 @@ const Message = require('./models/Message');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
@@ -224,20 +223,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-const startServer = async () => {
-  try {
-    // Connect to MongoDB
-    await connectDB();
-    console.log('MongoDB connected successfully');
-    
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+// Initialize MongoDB connection
+let dbConnection = null;
+
+const initializeDB = async () => {
+  if (!dbConnection) {
+    try {
+      dbConnection = await connectDB();
+      console.log('MongoDB connected successfully');
+    } catch (error) {
+      console.error('Failed to connect to MongoDB:', error);
+      throw error;
+    }
   }
+  return dbConnection;
 };
 
-startServer(); 
+// Export the Express API
+module.exports = app; 
