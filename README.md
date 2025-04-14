@@ -1,29 +1,41 @@
-# AnonX - Anonymous Telegram Messaging
+# Whispra - Anonymous Messaging Platform
 
-AnonX is a web application that allows users to receive anonymous messages through Telegram. Users can share their unique link, and anyone can send them messages anonymously.
+A platform that allows users to receive anonymous messages via Telegram.
 
-## Features
+## Project Structure
 
-- 🔒 Anonymous messaging through Telegram
-- 📱 Mobile-friendly interface
-- 📊 Message statistics and tracking
-- 🛡️ Basic message validation and error handling
-- 🔄 Real-time message delivery
+```
+.
+├── frontend/          # React frontend application
+└── backend/          # Node.js backend server
+```
 
-## Tech Stack
+## Deployment Instructions
 
-- Frontend: React + TypeScript + Tailwind CSS
-- Backend: Node.js + Express
-- Messaging: Telegram Bot API
-- Database: In-memory storage (can be replaced with MongoDB for production)
+### Backend Deployment (Vercel)
 
-## Setup Instructions
+1. Go to [Vercel](https://vercel.com) and sign in
+2. Click "New Project"
+3. Import your GitHub repository
+4. In the project settings, add these environment variables:
+   ```
+   MONGODB_URI=your_mongodb_connection_string
+   TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+   PORT=3001
+   ```
+5. Deploy the project
 
-### Prerequisites
+### Frontend Deployment (Vercel)
 
-- Node.js (v14 or higher)
-- npm or yarn
-- A Telegram bot token (get it from [@BotFather](https://t.me/BotFather))
+1. Create another project on Vercel
+2. Import your GitHub repository
+3. In the project settings, add this environment variable:
+   ```
+   REACT_APP_API_URL=your_backend_url
+   ```
+4. Deploy the project
+
+## Local Development
 
 ### Backend Setup
 
@@ -37,13 +49,9 @@ AnonX is a web application that allows users to receive anonymous messages throu
    npm install
    ```
 
-3. Create a `.env` file with your Telegram bot token:
-   ```
-   TELEGRAM_BOT_TOKEN=your_bot_token_here
-   PORT=3001
-   ```
+3. Create a `.env` file based on `.env.example`
 
-4. Start the backend server:
+4. Start the development server:
    ```bash
    npm start
    ```
@@ -60,10 +68,49 @@ AnonX is a web application that allows users to receive anonymous messages throu
    npm install
    ```
 
-3. Start the development server:
+3. Create a `.env` file based on `.env.example`
+
+4. Start the development server:
    ```bash
    npm start
    ```
+
+## Environment Variables
+
+### Backend (.env)
+```
+PORT=3001
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+MONGODB_URI=your_mongodb_connection_string
+```
+
+### Frontend (.env)
+```
+REACT_APP_API_URL=http://localhost:3001
+```
+
+## Features
+
+- Anonymous messaging via Telegram
+- Real-time message delivery
+- Message statistics and analytics
+- User settings and preferences
+- Secure and private communication
+
+## Tech Stack
+
+- Frontend: React + TypeScript + Tailwind CSS
+- Backend: Node.js + Express
+- Messaging: Telegram Bot API
+- Database: In-memory storage (can be replaced with MongoDB for production)
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- A Telegram bot token (get it from [@BotFather](https://t.me/BotFather))
 
 ## Usage
 

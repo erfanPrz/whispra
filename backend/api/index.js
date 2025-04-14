@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { bot } = require('./telegram');
-const connectDB = require('./db/connection');
-const User = require('./models/User');
-const Message = require('./models/Message');
+const { bot } = require('../telegram');
+const connectDB = require('../db/connection');
+const User = require('../models/User');
+const Message = require('../models/Message');
 
 // Load environment variables
 dotenv.config();
@@ -22,13 +22,13 @@ app.use((req, res, next) => {
 });
 
 // Test endpoint
-app.get('/api/test', (req, res) => {
+app.get('/test', (req, res) => {
   console.log('Test endpoint hit');
   res.json({ message: 'Backend is working!' });
 });
 
 // Connect user with Telegram
-app.post('/api/connect', async (req, res) => {
+app.post('/connect', async (req, res) => {
   console.log('Connect endpoint hit', req.body);
   const { username, chatId } = req.body;
   
@@ -65,7 +65,7 @@ app.post('/api/connect', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error in /api/connect:', error);
+    console.error('Error in /connect:', error);
     res.status(500).json({ 
       error: 'Failed to connect user',
       details: error.message
@@ -74,7 +74,7 @@ app.post('/api/connect', async (req, res) => {
 });
 
 // Send anonymous message
-app.post('/api/message/:username', async (req, res) => {
+app.post('/message/:username', async (req, res) => {
   console.log('Message endpoint hit', req.params, req.body);
   const { username } = req.params;
   const { text } = req.body;
@@ -153,7 +153,7 @@ app.post('/api/message/:username', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error in /api/message:', error);
+    console.error('Error in /message:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message
@@ -162,7 +162,7 @@ app.post('/api/message/:username', async (req, res) => {
 });
 
 // Get user info
-app.get('/api/user/:username', async (req, res) => {
+app.get('/user/:username', async (req, res) => {
   console.log('User info endpoint hit', req.params);
   const { username } = req.params;
   
@@ -206,7 +206,7 @@ app.get('/api/user/:username', async (req, res) => {
       statistics: messageStats[0] || { total: 0, delivered: 0, failed: 0 }
     });
   } catch (error) {
-    console.error('Error in /api/user:', error);
+    console.error('Error in /user:', error);
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message
@@ -240,8 +240,4 @@ const initializeDB = async () => {
 };
 
 // Export the Express API
-<<<<<<< HEAD
 module.exports = app; 
-=======
-module.exports = app; 
->>>>>>> 0336e1e (new)
