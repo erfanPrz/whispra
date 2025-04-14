@@ -71,8 +71,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ username }) => {
     return null;
   }
 
-  const userLink = `${window.location.origin}/${username}`;
-
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4">@{userData.username}</h2>
@@ -126,15 +124,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ username }) => {
             </p>
           </div>
         </div>
-      </div>
 
-      <div className="mt-6 text-center">
-        <Link
-          to="/"
-          className="text-blue-500 hover:underline"
-        >
-          Back to Home
-        </Link>
+        <div className="mt-6 text-center">
+          <Link
+            to="/"
+            className="text-blue-500 hover:underline"
+          >
+            Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );
