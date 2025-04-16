@@ -24,11 +24,14 @@ const connectDB = async () => {
 
     // Validate MongoDB URI format
     if (!process.env.MONGODB_URI.startsWith('mongodb://') && !process.env.MONGODB_URI.startsWith('mongodb+srv://')) {
-      console.error('Invalid MongoDB URI format');
+      console.error('Invalid MongoDB URI format. URI should start with mongodb:// or mongodb+srv://');
       return null;
     }
 
+    // Log connection attempt details
     console.log('Attempting to connect to MongoDB...');
+    console.log('Connection string format:', process.env.MONGODB_URI.startsWith('mongodb+srv://') ? 'MongoDB Atlas' : 'MongoDB Local');
+    
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -38,17 +41,35 @@ const connectDB = async () => {
       w: 'majority'
     });
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    console.log(`Database: ${conn.connection.name}`);
+    // Log successful connection details
+    console.log('MongoDB Connection Details:');
+    console.log('- Host:', conn.connection.host);
+    console.log('- Database:', conn.connection.name);
+    console.log('- Port:', conn.connection.port);
+    console.log('- User:', conn.connection.user || 'Not specified');
+    console.log('- State:', conn.connection.readyState === 1 ? 'Connected' : 'Disconnected');
+
     cachedDb = conn;
     return conn;
   } catch (error) {
-    console.error('MongoDB Connection Error:', error.message);
-    console.error('Error details:', {
-      name: error.name,
-      code: error.code,
-      message: error.message
-    });
+    // Enhanced error logging
+    console.error('MongoDB Connection Error Details:');
+    console.error('- Error Name:', error.name);
+    console.error('- Error Code:', error.code);
+    console.error('- Error Message:', error.message);
+    
+    if (error.code === 'ENOTFOUND') {
+      console.error('Network Error: Could not resolve the hostname');
+    } else if (error.code === 'ETIMEDOUT') {
+      console.error('Connection Timeout: Could not connect to the server');
+    } else if (error.code === 'ECONNREFUSED') {
+      console.error('Connection Refused: Server is not accepting connections');
+    } else if (error.name === 'MongoParseError') {
+      console.error('Invalid Connection String: Check the format of your MONGODB_URI');
+    } else if (error.name === 'MongoServerSelectionError') {
+      console.error('Server Selection Error: Could not find a suitable server');
+    }
+
     return null;
   }
 };

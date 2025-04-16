@@ -102,11 +102,7 @@ bot.onText(/\/start/, async (msg) => {
   });
   
   try {
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl) {
-      throw new Error('FRONTEND_URL is not set in environment variables');
-    }
-
+    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
     const welcomeMessage = `
@@ -158,6 +154,9 @@ bot.onText(/\/help/, async (msg) => {
   });
   
   try {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
+    const userLink = `${frontendUrl}/${username.toLowerCase()}`;
+
     const helpMessage = `
 🤖 Whispra Bot Commands:
 
@@ -171,7 +170,7 @@ bot.onText(/\/help/, async (msg) => {
 3. You'll receive them here in this chat
 
 🔗 Your message link:
-https://whispra-onxf.vercel.app/${username}
+${userLink}
     `.trim();
 
     const result = await bot.sendMessage(chatId, helpMessage, {
@@ -203,9 +202,12 @@ bot.onText(/\/link/, async (msg) => {
   });
   
   try {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
+    const userLink = `${frontendUrl}/${username.toLowerCase()}`;
+
     const linkMessage = `
 🔗 Your message link:
-https://whispra-onxf.vercel.app/${username}
+${userLink}
 
 Share this link to receive anonymous messages!
     `.trim();

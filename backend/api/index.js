@@ -89,21 +89,32 @@ app.get('/test-bot', async (req, res) => {
 app.get('/test-db', async (req, res) => {
   try {
     console.log('Testing database connection...');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+    
     const db = getConnection();
     if (!db) {
-      throw new Error('Database not connected');
+      // Try to establish a new connection
+      console.log('No cached connection found, attempting new connection...');
+      const newConnection = await connectDB();
+      if (!newConnection) {
+        throw new Error('Failed to establish database connection');
+      }
+      console.log('New connection established successfully');
     }
     
     // Test database with a simple query
+    console.log('Performing test query...');
     const testUser = await User.findOne({});
-    console.log('Database test successful');
+    console.log('Database test query successful');
     
     res.json({
       status: 'success',
       database: {
         connected: true,
         host: db.connection.host,
-        name: db.connection.name
+        name: db.connection.name,
+        state: db.connection.readyState === 1 ? 'connected' : 'disconnected'
       }
     });
   } catch (error) {
@@ -111,7 +122,9 @@ app.get('/test-db', async (req, res) => {
     res.status(500).json({
       status: 'error',
       error: 'Database test failed',
-      details: error.message
+      details: error.message,
+      environment: process.env.NODE_ENV,
+      mongodb_uri: process.env.MONGODB_URI ? 'Set' : 'Not Set'
     });
   }
 });
