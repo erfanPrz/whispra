@@ -22,6 +22,12 @@ const connectDB = async () => {
       return null;
     }
 
+    // Validate MongoDB URI format
+    if (!process.env.MONGODB_URI.startsWith('mongodb://') && !process.env.MONGODB_URI.startsWith('mongodb+srv://')) {
+      console.error('Invalid MongoDB URI format');
+      return null;
+    }
+
     console.log('Attempting to connect to MongoDB...');
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
@@ -33,6 +39,7 @@ const connectDB = async () => {
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Database: ${conn.connection.name}`);
     cachedDb = conn;
     return conn;
   } catch (error) {
