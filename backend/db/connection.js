@@ -18,7 +18,8 @@ const connectDB = async () => {
 
   try {
     if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined in environment variables');
+      console.error('MONGODB_URI is not defined in environment variables');
+      return null;
     }
 
     console.log('Attempting to connect to MongoDB...');
@@ -27,6 +28,8 @@ const connectDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      retryWrites: true,
+      w: 'majority'
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -39,8 +42,12 @@ const connectDB = async () => {
       code: error.code,
       message: error.message
     });
-    throw error;
+    return null;
   }
 };
 
-module.exports = connectDB;
+// Export both the function and the cached connection
+module.exports = {
+  connectDB,
+  getConnection: () => cachedDb
+};

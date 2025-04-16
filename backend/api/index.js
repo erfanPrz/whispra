@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { bot } = require('../telegram');
-const connectDB = require('../db/connection');
+const { connectDB, getConnection } = require('../db/connection');
 const User = require('../models/User');
 const Message = require('../models/Message');
 
@@ -28,11 +28,13 @@ const initializeDB = async () => {
   if (!dbConnection) {
     try {
       dbConnection = await connectDB();
-      console.log('MongoDB connected successfully');
+      if (dbConnection) {
+        console.log('MongoDB connected successfully');
+      } else {
+        console.log('MongoDB connection failed or not configured');
+      }
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error);
-      // Don't throw the error, just log it
-      // This allows the API to start even if DB connection fails
     }
   }
   return dbConnection;
@@ -45,10 +47,12 @@ initializeDB().catch(console.error);
 app.get('/', (req, res) => {
   try {
     console.log('Root endpoint hit');
+    const dbStatus = getConnection() ? 'connected' : 'disconnected';
     res.json({ 
       message: 'Welcome to the API',
       status: 'ok',
-      database: dbConnection ? 'connected' : 'disconnected'
+      database: dbStatus,
+      environment: process.env.NODE_ENV || 'development'
     });
   } catch (error) {
     console.error('Error in root endpoint:', error);
@@ -63,11 +67,16 @@ app.get('/', (req, res) => {
 app.get('/test', (req, res) => {
   try {
     console.log('Test endpoint hit');
+    const dbStatus = getConnection() ? 'connected' : 'disconnected';
     res.json({ 
       message: 'Backend is working!',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
-      database: dbConnection ? 'connected' : 'disconnected'
+      database: dbStatus,
+      services: {
+        telegram: process.env.TELEGRAM_BOT_TOKEN ? 'configured' : 'not configured',
+        mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
+      }
     });
   } catch (error) {
     console.error('Error in test endpoint:', error);

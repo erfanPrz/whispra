@@ -28,6 +28,42 @@ const bot = new TelegramBot(token, {
 // Log bot initialization
 console.log('Bot initialized with token:', token.substring(0, 5) + '...');
 
+// Test the bot connection immediately
+bot.getMe()
+  .then((botInfo) => {
+    console.log('Bot is running! Username:', botInfo.username);
+    console.log('Bot ID:', botInfo.id);
+    console.log('Bot First Name:', botInfo.first_name);
+  })
+  .catch((error) => {
+    console.error('Failed to get bot info:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      response: error.response
+    });
+  });
+
+// Handle polling errors
+bot.on('polling_error', (error) => {
+  console.error('Polling error:', error);
+  console.error('Error details:', {
+    code: error.code,
+    message: error.message,
+    response: error.response
+  });
+});
+
+// Handle webhook errors
+bot.on('webhook_error', (error) => {
+  console.error('Webhook error:', error);
+  console.error('Error details:', {
+    code: error.code,
+    message: error.message,
+    response: error.response
+  });
+});
+
 // Function to send a message to a user
 const sendMessage = async (chatId, text) => {
   try {
@@ -191,25 +227,6 @@ bot.on('error', (error) => {
     response: error.response
   });
 });
-
-// Log when the bot is ready
-bot.on('polling_error', (error) => {
-  console.error('Polling error:', error);
-});
-
-bot.on('webhook_error', (error) => {
-  console.error('Webhook error:', error);
-});
-
-// Test the bot on startup
-console.log('Testing bot connection...');
-bot.getMe()
-  .then((botInfo) => {
-    console.log('Bot is running! Username:', botInfo.username);
-  })
-  .catch((error) => {
-    console.error('Failed to get bot info:', error);
-  });
 
 module.exports = {
   sendMessage,
