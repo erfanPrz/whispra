@@ -5,7 +5,7 @@ dotenv.config();
 
 let cachedDb = null;
 
-const connectDB = async () => {
+l const connectDB = async () => {
   if (cachedDb) {
     console.log('Using cached database connection');
     return cachedDb;

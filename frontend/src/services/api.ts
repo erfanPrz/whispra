@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+// Debug environment variables
+console.log('Environment variables:', {
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  NODE_ENV: process.env.NODE_ENV
+});
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -8,6 +14,18 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  response => {
+    console.log('API Response:', response);
+    return response;
+  },
+  error => {
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 export const testApi = async () => {
   try {
