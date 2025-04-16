@@ -9,6 +9,13 @@ const Message = require('../models/Message');
 // Load environment variables
 dotenv.config();
 
+// Log all environment variables (without sensitive data)
+console.log('Environment Configuration:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
+console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
+
 const app = express();
 
 // Middleware
@@ -27,9 +34,19 @@ let dbConnection = null;
 const initializeDB = async () => {
   if (!dbConnection) {
     try {
+      console.log('Attempting to connect to MongoDB...');
+      console.log('Connection string:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+      
       dbConnection = await connectDB();
       if (dbConnection) {
         console.log('MongoDB connected successfully');
+        // Test database connection with a simple query
+        try {
+          const testUser = await User.findOne({});
+          console.log('Database test query successful');
+        } catch (error) {
+          console.error('Database test query failed:', error);
+        }
       } else {
         console.log('MongoDB connection failed or not configured');
       }
@@ -42,6 +59,62 @@ const initializeDB = async () => {
 
 // Initialize database connection
 initializeDB().catch(console.error);
+
+// Test bot endpoint
+app.get('/test-bot', async (req, res) => {
+  try {
+    console.log('Testing bot connection...');
+    const botInfo = await bot.getMe();
+    console.log('Bot info:', botInfo);
+    
+    res.json({
+      status: 'success',
+      bot: {
+        username: botInfo.username,
+        id: botInfo.id,
+        first_name: botInfo.first_name
+      }
+    });
+  } catch (error) {
+    console.error('Bot test failed:', error);
+    res.status(500).json({
+      status: 'error',
+      error: 'Bot test failed',
+      details: error.message
+    });
+  }
+});
+
+// Test database endpoint
+app.get('/test-db', async (req, res) => {
+  try {
+    console.log('Testing database connection...');
+    const db = getConnection();
+    if (!db) {
+      throw new Error('Database not connected');
+    }
+    
+    // Test database with a simple query
+    const testUser = await User.findOne({});
+    console.log('Database test successful');
+    
+    res.json({
+      status: 'success',
+      database: {
+        connected: true,
+        host: db.connection.host,
+        name: db.connection.name
+      }
+    });
+  } catch (error) {
+    console.error('Database test failed:', error);
+    res.status(500).json({
+      status: 'error',
+      error: 'Database test failed',
+      details: error.message
+    });
+  }
+});
 
 // Root endpoint
 app.get('/', (req, res) => {

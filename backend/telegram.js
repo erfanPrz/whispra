@@ -7,7 +7,7 @@ dotenv.config();
 console.log('Telegram Bot Configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
 console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
-console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'https://whispra-onxf.vercel.app');
+console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -102,8 +102,12 @@ bot.onText(/\/start/, async (msg) => {
   });
   
   try {
-    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-onxf.vercel.app';
-    const userLink = `${frontendUrl}/${username}`;
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      throw new Error('FRONTEND_URL is not set in environment variables');
+    }
+
+    const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
     const welcomeMessage = `
 👋 Welcome to Whispra!
