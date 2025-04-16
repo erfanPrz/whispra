@@ -21,6 +21,30 @@ app.use((req, res, next) => {
   next();
 });
 
+// Initialize MongoDB connection
+let dbConnection = null;
+
+const initializeDB = async () => {
+  if (!dbConnection) {
+    try {
+      dbConnection = await connectDB();
+      console.log('MongoDB connected successfully');
+    } catch (error) {
+      console.error('Failed to connect to MongoDB:', error);
+      throw error;
+    }
+  }
+  return dbConnection;
+};
+
+// Initialize database connection
+initializeDB().catch(console.error);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to the API' });
+});
+
 // Test endpoint
 app.get('/test', (req, res) => {
   console.log('Test endpoint hit');
@@ -222,22 +246,6 @@ app.use((err, req, res, next) => {
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
-
-// Initialize MongoDB connection
-let dbConnection = null;
-
-const initializeDB = async () => {
-  if (!dbConnection) {
-    try {
-      dbConnection = await connectDB();
-      console.log('MongoDB connected successfully');
-    } catch (error) {
-      console.error('Failed to connect to MongoDB:', error);
-      throw error;
-    }
-  }
-  return dbConnection;
-};
 
 // Export the Express API
 module.exports = app; 
