@@ -42,13 +42,18 @@ initializeDB().catch(console.error);
 
 // Root endpoint
 app.get('/', (req, res) => {
+  console.log('Root endpoint hit');
   res.json({ message: 'Welcome to the API' });
 });
 
 // Test endpoint
 app.get('/test', (req, res) => {
   console.log('Test endpoint hit');
-  res.json({ message: 'Backend is working!' });
+  res.json({ 
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Connect user with Telegram
