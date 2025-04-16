@@ -31,7 +31,8 @@ const initializeDB = async () => {
       console.log('MongoDB connected successfully');
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error);
-      throw error;
+      // Don't throw the error, just log it
+      // This allows the API to start even if DB connection fails
     }
   }
   return dbConnection;
@@ -42,18 +43,39 @@ initializeDB().catch(console.error);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  console.log('Root endpoint hit');
-  res.json({ message: 'Welcome to the API' });
+  try {
+    console.log('Root endpoint hit');
+    res.json({ 
+      message: 'Welcome to the API',
+      status: 'ok',
+      database: dbConnection ? 'connected' : 'disconnected'
+    });
+  } catch (error) {
+    console.error('Error in root endpoint:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
 });
 
 // Test endpoint
 app.get('/test', (req, res) => {
-  console.log('Test endpoint hit');
-  res.json({ 
-    message: 'Backend is working!',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  try {
+    console.log('Test endpoint hit');
+    res.json({ 
+      message: 'Backend is working!',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      database: dbConnection ? 'connected' : 'disconnected'
+    });
+  } catch (error) {
+    console.error('Error in test endpoint:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
 });
 
 // Connect user with Telegram

@@ -3,18 +3,25 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Log environment variables (without exposing sensitive data)
+console.log('MongoDB Configuration:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+
 let cachedDb = null;
 
-l const connectDB = async () => {
+const connectDB = async () => {
   if (cachedDb) {
     console.log('Using cached database connection');
     return cachedDb;
   }
 
   try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+
     console.log('Attempting to connect to MongoDB...');
-    console.log('Using database:', process.env.MONGODB_URI.split('/').pop().split('?')[0]);
-    
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -23,13 +30,15 @@ l const connectDB = async () => {
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
-    console.log('Database name:', conn.connection.name);
-
     cachedDb = conn;
     return conn;
   } catch (error) {
     console.error('MongoDB Connection Error:', error.message);
-    console.error('Error details:', error);
+    console.error('Error details:', {
+      name: error.name,
+      code: error.code,
+      message: error.message
+    });
     throw error;
   }
 };
