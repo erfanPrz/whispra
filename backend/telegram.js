@@ -38,7 +38,7 @@ bot.onText(/\/start/, async (msg) => {
 👋 Welcome to Whispra!
 
 Your anonymous message link is:
-http://localhost:3000/${username}
+https://whispra-onxf.vercel.app/${username}
 
 Share this link with others to receive anonymous messages.
 
@@ -48,6 +48,10 @@ Share this link with others to receive anonymous messages.
 3. You'll receive them here in this chat
 
 ⚠️ Note: Messages are completely anonymous - we don't store any sender information.
+
+🔗 Quick Actions:
+• /help - Show this message
+• /link - Get your message link
     `.trim();
 
     await bot.sendMessage(chatId, welcomeMessage, {
@@ -56,6 +60,61 @@ Share this link with others to receive anonymous messages.
     });
   } catch (error) {
     console.error('Error handling /start command:', error);
+    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
+  }
+});
+
+// Handle /help command
+bot.onText(/\/help/, async (msg) => {
+  const chatId = msg.chat.id;
+  const username = msg.from.username || `user${chatId}`;
+  
+  try {
+    const helpMessage = `
+🤖 Whispra Bot Commands:
+
+• /start - Start the bot and get your message link
+• /help - Show this help message
+• /link - Get your message link
+
+📝 How to use:
+1. Share your message link with friends
+2. They can send you anonymous messages
+3. You'll receive them here in this chat
+
+🔗 Your message link:
+https://whispra-onxf.vercel.app/${username}
+    `.trim();
+
+    await bot.sendMessage(chatId, helpMessage, {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true
+    });
+  } catch (error) {
+    console.error('Error handling /help command:', error);
+    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
+  }
+});
+
+// Handle /link command
+bot.onText(/\/link/, async (msg) => {
+  const chatId = msg.chat.id;
+  const username = msg.from.username || `user${chatId}`;
+  
+  try {
+    const linkMessage = `
+🔗 Your message link:
+https://whispra-onxf.vercel.app/${username}
+
+Share this link to receive anonymous messages!
+    `.trim();
+
+    await bot.sendMessage(chatId, linkMessage, {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true
+    });
+  } catch (error) {
+    console.error('Error handling /link command:', error);
     await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
   }
 });
