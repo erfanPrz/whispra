@@ -102,61 +102,77 @@ const ensureDatabaseConnection = async () => {
   }
 };
 
-// Handle /start command
-bot.onText(/\/start/, async (msg) => {
-  const chatId = msg.chat.id;
-  const username = msg.from.username || `user${chatId}`;
-  
-  console.log('Received /start command from:', {
-    chatId,
-    username,
-    firstName: msg.from.first_name,
-    lastName: msg.from.last_name,
-    timestamp: new Date().toISOString()
-  });
-  
-  try {
-    // First, ensure database connection
-    console.log('Checking database connection for /start command...');
-    const dbConnected = await ensureDatabaseConnection();
-    if (!dbConnected) {
-      throw new Error('Database connection failed');
-    }
-
-    // Check if user exists
-    console.log('Checking if user exists:', username);
-    let user = await User.findOne({ username });
-    if (!user) {
-      console.log('Creating new user:', username);
-      // Create new user
-      user = await User.create({
-        username,
-        chatId: chatId.toString(),
-        settings: {
-          allowMessages: true,
-          messageLimit: 1000
-        }
-      });
-      console.log('New user created:', user);
-    } else {
-      console.log('User found:', user);
-      // Update chatId if it has changed
-      if (user.chatId !== chatId.toString()) {
-        console.log('Updating user chatId');
-        user.chatId = chatId.toString();
-        await user.save();
-        console.log('User chatId updated:', user);
-      }
-    }
-
-    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
-    const userLink = `${frontendUrl}/${username.toLowerCase()}`;
-
-    console.log('Sending welcome message to user:', username);
-    const welcomeMessage = `
+// Function to send welcome message with link generation option
+const sendWelcomeMessage = async (chatId, username) => {
+  const welcomeMessage = `
 👋 Welcome to Whispra!
 
-Your anonymous message link is:
+I'm your anonymous messaging bot. Would you like to get your unique link to receive anonymous messages?
+
+Click the button below to get started!
+  `.trim();
+
+  const options = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Yes, get my link!', callback_data: 'generate_link' },
+          { text: 'No, maybe later', callback_data: 'skip_link' }
+        ]
+      ]
+    }
+  };
+
+  await bot.sendMessage(chatId, welcomeMessage, options);
+};
+
+// Handle callback queries (button clicks)
+bot.on('callback_query', async (callbackQuery) => {
+  const chatId = callbackQuery.message.chat.id;
+  const username = callbackQuery.from.username || `user${chatId}`;
+  const data = callbackQuery.data;
+
+  console.log('Received callback query:', {
+    chatId,
+    username,
+    data,
+    timestamp: new Date().toISOString()
+  });
+
+  try {
+    if (data === 'generate_link') {
+      // Ensure database connection
+      const dbConnected = await ensureDatabaseConnection();
+      if (!dbConnected) {
+        throw new Error('Database connection failed');
+      }
+
+      // Check if user exists
+      let user = await User.findOne({ username });
+      if (!user) {
+        // Create new user
+        user = await User.create({
+          username,
+          chatId: chatId.toString(),
+          settings: {
+            allowMessages: true,
+            messageLimit: 1000
+          }
+        });
+      } else {
+        // Update chatId if it has changed
+        if (user.chatId !== chatId.toString()) {
+          user.chatId = chatId.toString();
+          await user.save();
+        }
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
+      const userLink = `${frontendUrl}/${username.toLowerCase()}`;
+
+      const successMessage = `
+✅ Great! Your unique link has been created:
+
 ${userLink}
 
 Share this link with others to receive anonymous messages.
@@ -171,31 +187,48 @@ Share this link with others to receive anonymous messages.
 🔗 Quick Actions:
 • /help - Show this message
 • /link - Get your message link
-    `.trim();
+      `.trim();
 
-    const result = await bot.sendMessage(chatId, welcomeMessage, {
-      parse_mode: 'HTML',
-      disable_web_page_preview: true
-    });
-    console.log('Welcome message sent successfully:', result.message_id);
+      await bot.sendMessage(chatId, successMessage, {
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      });
+    } else if (data === 'skip_link') {
+      const skipMessage = `
+No problem! You can get your link anytime by:
+1. Using the /link command
+2. Clicking the "Get Link" button in the menu
+3. Sending /start again
+
+Let me know if you change your mind! 😊
+      `.trim();
+
+      await bot.sendMessage(chatId, skipMessage);
+    }
+  } catch (error) {
+    console.error('Error handling callback query:', error);
+    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
+  }
+});
+
+// Handle /start command
+bot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
+  const username = msg.from.username || `user${chatId}`;
+  
+  console.log('Received /start command from:', {
+    chatId,
+    username,
+    firstName: msg.from.first_name,
+    lastName: msg.from.last_name,
+    timestamp: new Date().toISOString()
+  });
+  
+  try {
+    await sendWelcomeMessage(chatId, username);
   } catch (error) {
     console.error('Error handling /start command:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-    
-    // Send a more informative error message
-    const errorMessage = `
-⚠️ Oops! Something went wrong.
-
-Error: ${error.message}
-
-Please try again in a few moments. If the problem persists, contact support.
-    `.trim();
-    
-    await bot.sendMessage(chatId, errorMessage);
+    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
   }
 });
 
@@ -260,6 +293,26 @@ bot.onText(/\/link/, async (msg) => {
   });
   
   try {
+    // Ensure database connection
+    const dbConnected = await ensureDatabaseConnection();
+    if (!dbConnected) {
+      throw new Error('Database connection failed');
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ username });
+    if (!user) {
+      // Create new user
+      user = await User.create({
+        username,
+        chatId: chatId.toString(),
+        settings: {
+          allowMessages: true,
+          messageLimit: 1000
+        }
+      });
+    }
+
     const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
@@ -270,18 +323,12 @@ ${userLink}
 Share this link to receive anonymous messages!
     `.trim();
 
-    const result = await bot.sendMessage(chatId, linkMessage, {
+    await bot.sendMessage(chatId, linkMessage, {
       parse_mode: 'HTML',
       disable_web_page_preview: true
     });
-    console.log('Link message sent successfully:', result.message_id);
   } catch (error) {
     console.error('Error handling /link command:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      response: error.response
-    });
     await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
   }
 });
