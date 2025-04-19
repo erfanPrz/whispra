@@ -23,7 +23,8 @@ const bot = new TelegramBot(token, {
     interval: 300,
     autoStart: true,
     params: {
-      timeout: 10
+      timeout: 10,
+      allowed_updates: ['message', 'callback_query']
     }
   }
 });
@@ -64,6 +65,16 @@ bot.on('webhook_error', (error) => {
     code: error.code,
     message: error.message,
     response: error.response
+  });
+});
+
+// Handle any message
+bot.on('message', (msg) => {
+  console.log('Received message:', {
+    chatId: msg.chat.id,
+    username: msg.from.username,
+    text: msg.text,
+    type: msg.chat.type
   });
 });
 
