@@ -10,6 +10,7 @@ console.log('Telegram Bot Configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
 console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
 console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
+console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -74,21 +75,29 @@ bot.on('message', (msg) => {
     chatId: msg.chat.id,
     username: msg.from.username,
     text: msg.text,
-    type: msg.chat.type
+    type: msg.chat.type,
+    timestamp: new Date().toISOString()
   });
 });
 
 // Function to ensure database connection
 const ensureDatabaseConnection = async () => {
   try {
+    console.log('Attempting to connect to database...');
     const db = await connectDB();
     if (!db) {
-      console.error('Database connection failed');
+      console.error('Database connection failed - no connection returned');
       return false;
     }
+    console.log('Database connection successful');
     return true;
   } catch (error) {
     console.error('Error ensuring database connection:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     return false;
   }
 };
@@ -102,19 +111,23 @@ bot.onText(/\/start/, async (msg) => {
     chatId,
     username,
     firstName: msg.from.first_name,
-    lastName: msg.from.last_name
+    lastName: msg.from.last_name,
+    timestamp: new Date().toISOString()
   });
   
   try {
     // First, ensure database connection
+    console.log('Checking database connection for /start command...');
     const dbConnected = await ensureDatabaseConnection();
     if (!dbConnected) {
       throw new Error('Database connection failed');
     }
 
     // Check if user exists
+    console.log('Checking if user exists:', username);
     let user = await User.findOne({ username });
     if (!user) {
+      console.log('Creating new user:', username);
       // Create new user
       user = await User.create({
         username,
@@ -126,8 +139,10 @@ bot.onText(/\/start/, async (msg) => {
       });
       console.log('New user created:', user);
     } else {
+      console.log('User found:', user);
       // Update chatId if it has changed
       if (user.chatId !== chatId.toString()) {
+        console.log('Updating user chatId');
         user.chatId = chatId.toString();
         await user.save();
         console.log('User chatId updated:', user);
@@ -137,6 +152,7 @@ bot.onText(/\/start/, async (msg) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
+    console.log('Sending welcome message to user:', username);
     const welcomeMessage = `
 👋 Welcome to Whispra!
 
@@ -165,9 +181,9 @@ Share this link with others to receive anonymous messages.
   } catch (error) {
     console.error('Error handling /start command:', error);
     console.error('Error details:', {
-      code: error.code,
+      name: error.name,
       message: error.message,
-      response: error.response
+      stack: error.stack
     });
     
     // Send a more informative error message
