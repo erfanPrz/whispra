@@ -9,6 +9,8 @@ console.log('- NODE_ENV:', process.env.NODE_ENV);
 console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
 
 let cachedDb = null;
+let connectionAttempts = 0;
+const MAX_RETRIES = 3;
 
 const connectDB = async () => {
   if (cachedDb) {
@@ -38,7 +40,9 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       retryWrites: true,
-      w: 'majority'
+      w: 'majority',
+      maxPoolSize: 10,
+      minPoolSize: 2
     });
 
     // Log successful connection details
@@ -48,6 +52,30 @@ const connectDB = async () => {
     console.log('- Port:', conn.connection.port);
     console.log('- User:', conn.connection.user || 'Not specified');
     console.log('- State:', conn.connection.readyState === 1 ? 'Connected' : 'Disconnected');
+
+    // Set up connection event handlers
+    conn.connection.on('connected', () => {
+      console.log('MongoDB connected successfully');
+      connectionAttempts = 0;
+    });
+
+    conn.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+      if (connectionAttempts < MAX_RETRIES) {
+        connectionAttempts++;
+        console.log(`Retrying connection (attempt ${connectionAttempts}/${MAX_RETRIES})...`);
+        setTimeout(connectDB, 5000); // Retry after 5 seconds
+      }
+    });
+
+    conn.connection.on('disconnected', () => {
+      console.log('MongoDB disconnected');
+      if (connectionAttempts < MAX_RETRIES) {
+        connectionAttempts++;
+        console.log(`Retrying connection (attempt ${connectionAttempts}/${MAX_RETRIES})...`);
+        setTimeout(connectDB, 5000);
+      }
+    });
 
     cachedDb = conn;
     return conn;
@@ -68,6 +96,12 @@ const connectDB = async () => {
       console.error('Invalid Connection String: Check the format of your MONGODB_URI');
     } else if (error.name === 'MongoServerSelectionError') {
       console.error('Server Selection Error: Could not find a suitable server');
+    }
+
+    if (connectionAttempts < MAX_RETRIES) {
+      connectionAttempts++;
+      console.log(`Retrying connection (attempt ${connectionAttempts}/${MAX_RETRIES})...`);
+      setTimeout(connectDB, 5000);
     }
 
     return null;

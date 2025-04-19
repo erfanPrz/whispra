@@ -1,5 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
+const { connectDB } = require('./db/connection');
+const User = require('./models/User');
 
 dotenv.config();
 
@@ -65,30 +67,6 @@ bot.on('webhook_error', (error) => {
   });
 });
 
-// Function to send a message to a user
-const sendMessage = async (chatId, text) => {
-  try {
-    console.log('Attempting to send message to chatId:', chatId);
-    // Format the message with emoji and timestamp
-    const formattedMessage = `📨 New anonymous message:\n\n${text}\n\n⏰ ${new Date().toLocaleString()}`;
-    
-    const result = await bot.sendMessage(chatId, formattedMessage, {
-      parse_mode: 'HTML',
-      disable_web_page_preview: true
-    });
-    console.log('Message sent successfully:', result.message_id);
-    return true;
-  } catch (error) {
-    console.error('Error sending Telegram message:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      response: error.response
-    });
-    throw error;
-  }
-};
-
 // Handle /start command
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -102,6 +80,34 @@ bot.onText(/\/start/, async (msg) => {
   });
   
   try {
+    // Ensure database connection
+    const db = await connectDB();
+    if (!db) {
+      throw new Error('Database connection failed');
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ username });
+    if (!user) {
+      // Create new user
+      user = await User.create({
+        username,
+        chatId: chatId.toString(),
+        settings: {
+          allowMessages: true,
+          messageLimit: 1000
+        }
+      });
+      console.log('New user created:', user);
+    } else {
+      // Update chatId if it has changed
+      if (user.chatId !== chatId.toString()) {
+        user.chatId = chatId.toString();
+        await user.save();
+        console.log('User chatId updated:', user);
+      }
+    }
+
     const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
@@ -237,6 +243,22 @@ bot.on('error', (error) => {
     response: error.response
   });
 });
+
+// Function to send a message to a user
+const sendMessage = async (chatId, text) => {
+  try {
+    console.log('Attempting to send message to chatId:', chatId);
+    const result = await bot.sendMessage(chatId, text, {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true
+    });
+    console.log('Message sent successfully:', result.message_id);
+    return true;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
 
 module.exports = {
   sendMessage,
