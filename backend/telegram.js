@@ -78,6 +78,21 @@ bot.on('message', (msg) => {
   });
 });
 
+// Function to ensure database connection
+const ensureDatabaseConnection = async () => {
+  try {
+    const db = await connectDB();
+    if (!db) {
+      console.error('Database connection failed');
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error ensuring database connection:', error);
+    return false;
+  }
+};
+
 // Handle /start command
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
@@ -91,9 +106,9 @@ bot.onText(/\/start/, async (msg) => {
   });
   
   try {
-    // Ensure database connection
-    const db = await connectDB();
-    if (!db) {
+    // First, ensure database connection
+    const dbConnected = await ensureDatabaseConnection();
+    if (!dbConnected) {
       throw new Error('Database connection failed');
     }
 
@@ -154,7 +169,17 @@ Share this link with others to receive anonymous messages.
       message: error.message,
       response: error.response
     });
-    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
+    
+    // Send a more informative error message
+    const errorMessage = `
+⚠️ Oops! Something went wrong.
+
+Error: ${error.message}
+
+Please try again in a few moments. If the problem persists, contact support.
+    `.trim();
+    
+    await bot.sendMessage(chatId, errorMessage);
   }
 });
 
