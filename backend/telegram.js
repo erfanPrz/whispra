@@ -248,7 +248,9 @@ bot.on('error', (error) => {
 const sendMessage = async (chatId, text) => {
   try {
     console.log('Attempting to send message to chatId:', chatId);
-    const result = await bot.sendMessage(chatId, text, {
+    const formattedMessage = `📨 New anonymous message:\n\n${text}\n\n⏰ ${new Date().toLocaleString()}`;
+    
+    const result = await bot.sendMessage(chatId, formattedMessage, {
       parse_mode: 'HTML',
       disable_web_page_preview: true
     });
@@ -256,6 +258,11 @@ const sendMessage = async (chatId, text) => {
     return true;
   } catch (error) {
     console.error('Error sending message:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      response: error.response
+    });
     throw error;
   }
 };
