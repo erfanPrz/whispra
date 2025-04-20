@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: whispra-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node api/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: FRONTEND_URL
+        value: https://whispra-nine.vercel.app 
