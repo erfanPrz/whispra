@@ -104,26 +104,33 @@ const ensureDatabaseConnection = async () => {
 
 // Function to send welcome message with link generation option
 const sendWelcomeMessage = async (chatId, username) => {
-  const welcomeMessage = `
+  try {
+    const welcomeMessage = `
 👋 Welcome to Whispra!
 
 I'm your anonymous messaging bot. Would you like to get your unique link to receive anonymous messages?
 
 Click the button below to get started!
-  `.trim();
+    `.trim();
 
-  const options = {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: 'Yes, get my link!', callback_data: 'generate_link' },
-          { text: 'No, maybe later', callback_data: 'skip_link' }
+    const options = {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: 'Yes, get my link!', callback_data: 'generate_link' },
+            { text: 'No, maybe later', callback_data: 'skip_link' }
+          ]
         ]
-      ]
-    }
-  };
+      }
+    };
 
-  await bot.sendMessage(chatId, welcomeMessage, options);
+    console.log('Sending welcome message to:', { chatId, username });
+    const result = await bot.sendMessage(chatId, welcomeMessage, options);
+    console.log('Welcome message sent successfully:', result.message_id);
+  } catch (error) {
+    console.error('Error sending welcome message:', error);
+    throw error;
+  }
 };
 
 // Handle callback queries (button clicks)
@@ -140,6 +147,9 @@ bot.on('callback_query', async (callbackQuery) => {
   });
 
   try {
+    // Answer the callback query to remove the loading state
+    await bot.answerCallbackQuery(callbackQuery.id);
+
     if (data === 'generate_link') {
       // Ensure database connection
       const dbConnected = await ensureDatabaseConnection();
@@ -159,11 +169,13 @@ bot.on('callback_query', async (callbackQuery) => {
             messageLimit: 1000
           }
         });
+        console.log('New user created:', user);
       } else {
         // Update chatId if it has changed
         if (user.chatId !== chatId.toString()) {
           user.chatId = chatId.toString();
           await user.save();
+          console.log('User chatId updated:', user);
         }
       }
 
@@ -237,17 +249,7 @@ bot.onText(/\/help/, async (msg) => {
   const chatId = msg.chat.id;
   const username = msg.from.username || `user${chatId}`;
   
-  console.log('Received /help command from:', {
-    chatId,
-    username,
-    firstName: msg.from.first_name,
-    lastName: msg.from.last_name
-  });
-  
   try {
-    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
-    const userLink = `${frontendUrl}/${username.toLowerCase()}`;
-
     const helpMessage = `
 🤖 Whispra Bot Commands:
 
@@ -259,23 +261,14 @@ bot.onText(/\/help/, async (msg) => {
 1. Share your message link with friends
 2. They can send you anonymous messages
 3. You'll receive them here in this chat
-
-🔗 Your message link:
-${userLink}
     `.trim();
 
-    const result = await bot.sendMessage(chatId, helpMessage, {
+    await bot.sendMessage(chatId, helpMessage, {
       parse_mode: 'HTML',
       disable_web_page_preview: true
     });
-    console.log('Help message sent successfully:', result.message_id);
   } catch (error) {
     console.error('Error handling /help command:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      response: error.response
-    });
     await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
   }
 });
@@ -284,13 +277,6 @@ ${userLink}
 bot.onText(/\/link/, async (msg) => {
   const chatId = msg.chat.id;
   const username = msg.from.username || `user${chatId}`;
-  
-  console.log('Received /link command from:', {
-    chatId,
-    username,
-    firstName: msg.from.first_name,
-    lastName: msg.from.last_name
-  });
   
   try {
     // Ensure database connection
@@ -311,6 +297,7 @@ bot.onText(/\/link/, async (msg) => {
           messageLimit: 1000
         }
       });
+      console.log('New user created via /link command:', user);
     }
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
