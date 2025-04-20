@@ -3,33 +3,39 @@ const dotenv = require('dotenv');
 const { connectDB } = require('./db/connection');
 const User = require('./models/User');
 
+// Load environment variables
 dotenv.config();
 
-// Log environment variables
-console.log('Bot Configuration:');
+// Basic configuration check
+console.log('Starting bot with configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
 console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
-console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
 console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
-if (!token) {
+// Validate required environment variables
+if (!process.env.TELEGRAM_BOT_TOKEN) {
   console.error('Error: TELEGRAM_BOT_TOKEN is not set');
-  throw new Error('TELEGRAM_BOT_TOKEN is not set');
+  process.exit(1);
 }
 
-// Create bot instance
-const bot = new TelegramBot(token, {
+// Initialize bot with basic polling
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
   polling: true
 });
 
 // Test bot connection
 bot.getMe()
   .then((botInfo) => {
-    console.log('Bot is running! Username:', botInfo.username);
+    console.log('Bot started successfully:', {
+      username: botInfo.username,
+      id: botInfo.id,
+      name: botInfo.first_name
+    });
   })
   .catch((error) => {
     console.error('Failed to start bot:', error);
+    process.exit(1);
   });
 
 // Handle /start command
@@ -37,17 +43,18 @@ bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const username = msg.from.username || `user${chatId}`;
   
-  console.log('New user:', { chatId, username });
+  console.log('New user started bot:', { chatId, username });
 
   try {
     // Connect to database
-    await connectDB();
-    
-    // Check if user exists
+    const db = await connectDB();
+    if (!db) {
+      throw new Error('Failed to connect to database');
+    }
+
+    // Find or create user
     let user = await User.findOne({ username });
-    
     if (!user) {
-      // Create new user
       user = await User.create({
         username,
         chatId: chatId.toString(),
@@ -56,14 +63,14 @@ bot.onText(/\/start/, async (msg) => {
           messageLimit: 1000
         }
       });
-      console.log('New user created:', user);
+      console.log('Created new user:', user);
     }
 
     // Generate user's link
     const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
-    // Send welcome message with link
+    // Send welcome message
     const message = `
 👋 Welcome to Whispra!
 
@@ -87,7 +94,7 @@ Share this link with others to receive anonymous messages.
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in /start command:', error);
     await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
   }
 });
@@ -97,11 +104,16 @@ bot.onText(/\/link/, async (msg) => {
   const chatId = msg.chat.id;
   const username = msg.from.username || `user${chatId}`;
   
+  console.log('User requested link:', { chatId, username });
+
   try {
     // Connect to database
-    await connectDB();
-    
-    // Get or create user
+    const db = await connectDB();
+    if (!db) {
+      throw new Error('Failed to connect to database');
+    }
+
+    // Find or create user
     let user = await User.findOne({ username });
     if (!user) {
       user = await User.create({
@@ -112,6 +124,7 @@ bot.onText(/\/link/, async (msg) => {
           messageLimit: 1000
         }
       });
+      console.log('Created new user:', user);
     }
 
     // Generate user's link
@@ -132,16 +145,16 @@ Share this link to receive anonymous messages!
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in /link command:', error);
     await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
   }
 });
 
-// Function to send a message to a user
+// Function to send anonymous messages to users
 const sendMessage = async (chatId, text) => {
   try {
-    const formattedMessage = `📨 New anonymous message:\n\n${text}\n\n⏰ ${new Date().toLocaleString()}`;
-    await bot.sendMessage(chatId, formattedMessage, {
+    const message = `📨 New anonymous message:\n\n${text}\n\n⏰ ${new Date().toLocaleString()}`;
+    await bot.sendMessage(chatId, message, {
       parse_mode: 'HTML',
       disable_web_page_preview: true
     });
