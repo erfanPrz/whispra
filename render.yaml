@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: whispra-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node api/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: FRONTEND_URL
+        value: https://whispra.onrender.com
+
+  - type: web
+    name: whispra-frontend
+    env: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_API_URL
+        value: https://whispra-backend.onrender.com 
