@@ -18,55 +18,77 @@ if (!token) {
   throw new Error('TELEGRAM_BOT_TOKEN is not set in environment variables');
 }
 
-// Create a bot instance with more options
+// Create a bot instance with more robust options
 const bot = new TelegramBot(token, {
   polling: {
-    interval: 300,
+    interval: 1000, // Increased interval
     autoStart: true,
     params: {
-      timeout: 10,
+      timeout: 30, // Increased timeout
       allowed_updates: ['message', 'callback_query']
     }
   }
 });
 
-// Log bot initialization
-console.log('Bot initialized with token:', token.substring(0, 5) + '...');
+// Track bot state
+let isBotRunning = false;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
-// Test the bot connection immediately
-bot.getMe()
-  .then((botInfo) => {
+// Function to initialize bot
+const initializeBot = async () => {
+  try {
+    console.log('Initializing bot...');
+    
+    // Test the bot connection
+    const botInfo = await bot.getMe();
     console.log('Bot is running! Username:', botInfo.username);
     console.log('Bot ID:', botInfo.id);
     console.log('Bot First Name:', botInfo.first_name);
-  })
-  .catch((error) => {
-    console.error('Failed to get bot info:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      response: error.response
-    });
-  });
+    
+    isBotRunning = true;
+    reconnectAttempts = 0;
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize bot:', error);
+    return false;
+  }
+};
+
+// Initialize bot immediately
+initializeBot().then(success => {
+  if (!success && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    console.log('Retrying bot initialization...');
+    setTimeout(initializeBot, 5000); // Retry after 5 seconds
+    reconnectAttempts++;
+  }
+});
 
 // Handle polling errors
 bot.on('polling_error', (error) => {
   console.error('Polling error:', error);
-  console.error('Error details:', {
-    code: error.code,
-    message: error.message,
-    response: error.response
-  });
+  isBotRunning = false;
+  
+  if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    console.log('Attempting to reconnect...');
+    setTimeout(initializeBot, 5000);
+    reconnectAttempts++;
+  } else {
+    console.error('Max reconnection attempts reached');
+  }
 });
 
 // Handle webhook errors
 bot.on('webhook_error', (error) => {
   console.error('Webhook error:', error);
-  console.error('Error details:', {
-    code: error.code,
-    message: error.message,
-    response: error.response
-  });
+  isBotRunning = false;
+  
+  if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    console.log('Attempting to reconnect...');
+    setTimeout(initializeBot, 5000);
+    reconnectAttempts++;
+  }
 });
 
 // Handle any message
@@ -93,11 +115,6 @@ const ensureDatabaseConnection = async () => {
     return true;
   } catch (error) {
     console.error('Error ensuring database connection:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
     return false;
   }
 };
@@ -105,6 +122,11 @@ const ensureDatabaseConnection = async () => {
 // Function to send welcome message with link generation option
 const sendWelcomeMessage = async (chatId, username) => {
   try {
+    if (!isBotRunning) {
+      console.error('Bot is not running, cannot send welcome message');
+      return false;
+    }
+
     const welcomeMessage = `
 👋 Welcome to Whispra!
 
@@ -127,9 +149,10 @@ Click the button below to get started!
     console.log('Sending welcome message to:', { chatId, username });
     const result = await bot.sendMessage(chatId, welcomeMessage, options);
     console.log('Welcome message sent successfully:', result.message_id);
+    return true;
   } catch (error) {
     console.error('Error sending welcome message:', error);
-    throw error;
+    return false;
   }
 };
 
@@ -237,7 +260,18 @@ bot.onText(/\/start/, async (msg) => {
   });
   
   try {
-    await sendWelcomeMessage(chatId, username);
+    if (!isBotRunning) {
+      console.log('Bot is not running, attempting to reconnect...');
+      const reconnected = await initializeBot();
+      if (!reconnected) {
+        throw new Error('Bot is not running and reconnection failed');
+      }
+    }
+
+    const success = await sendWelcomeMessage(chatId, username);
+    if (!success) {
+      throw new Error('Failed to send welcome message');
+    }
   } catch (error) {
     console.error('Error handling /start command:', error);
     await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
@@ -250,6 +284,14 @@ bot.onText(/\/help/, async (msg) => {
   const username = msg.from.username || `user${chatId}`;
   
   try {
+    if (!isBotRunning) {
+      console.log('Bot is not running, attempting to reconnect...');
+      const reconnected = await initializeBot();
+      if (!reconnected) {
+        throw new Error('Bot is not running and reconnection failed');
+      }
+    }
+
     const helpMessage = `
 🤖 Whispra Bot Commands:
 
@@ -279,6 +321,14 @@ bot.onText(/\/link/, async (msg) => {
   const username = msg.from.username || `user${chatId}`;
   
   try {
+    if (!isBotRunning) {
+      console.log('Bot is not running, attempting to reconnect...');
+      const reconnected = await initializeBot();
+      if (!reconnected) {
+        throw new Error('Bot is not running and reconnection failed');
+      }
+    }
+
     // Ensure database connection
     const dbConnected = await ensureDatabaseConnection();
     if (!dbConnected) {
@@ -323,16 +373,26 @@ Share this link to receive anonymous messages!
 // Handle errors
 bot.on('error', (error) => {
   console.error('Telegram bot error:', error);
-  console.error('Error details:', {
-    code: error.code,
-    message: error.message,
-    response: error.response
-  });
+  isBotRunning = false;
+  
+  if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    console.log('Attempting to reconnect...');
+    setTimeout(initializeBot, 5000);
+    reconnectAttempts++;
+  }
 });
 
 // Function to send a message to a user
 const sendMessage = async (chatId, text) => {
   try {
+    if (!isBotRunning) {
+      console.log('Bot is not running, attempting to reconnect...');
+      const reconnected = await initializeBot();
+      if (!reconnected) {
+        throw new Error('Bot is not running and reconnection failed');
+      }
+    }
+
     console.log('Attempting to send message to chatId:', chatId);
     const formattedMessage = `📨 New anonymous message:\n\n${text}\n\n⏰ ${new Date().toLocaleString()}`;
     
@@ -344,11 +404,6 @@ const sendMessage = async (chatId, text) => {
     return true;
   } catch (error) {
     console.error('Error sending message:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      response: error.response
-    });
     throw error;
   }
 };
