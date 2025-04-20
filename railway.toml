@@ -1,0 +1,13 @@
+[build]
+builder = "nixpacks"
+buildCommand = "echo 'Skipping build as we have separate services'"
+
+[deploy]
+startCommand = "echo 'Starting services...'"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[deploy.envs]
+NODE_ENV = "production" 
