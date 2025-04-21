@@ -341,10 +341,25 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-  initializeDB().catch(console.error);
-});
+const startServer = async () => {
+  try {
+    // Initialize database first
+    await initializeDB();
+    
+    // Start server
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Only start the server if this file is run directly
+if (require.main === module) {
+  startServer();
+}
 
 // Export the Express API
 module.exports = app; 

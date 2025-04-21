@@ -19,22 +19,19 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   process.exit(1);
 }
 
-// Initialize bot with webhook
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  webHook: {
-    port: process.env.PORT || 3000
+// Initialize bot with polling
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+
+// Start polling
+bot.startPolling({
+  polling: {
+    interval: 300,
+    autoStart: true,
+    params: {
+      timeout: 10
+    }
   }
 });
-
-// Set webhook URL
-const webhookUrl = `${process.env.BACKEND_URL || 'https://whispra-backend.onrender.com'}/bot${process.env.TELEGRAM_BOT_TOKEN}`;
-bot.setWebHook(webhookUrl)
-  .then(() => {
-    console.log('Webhook set successfully:', webhookUrl);
-  })
-  .catch((error) => {
-    console.error('Failed to set webhook:', error);
-  });
 
 // Test bot connection
 bot.getMe()
