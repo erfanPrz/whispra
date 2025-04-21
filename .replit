@@ -1,0 +1,6 @@
+run = "npm start"
+hidden = [".config", "package.json", "package-lock.json", ".env"]
+entrypoint = "api/index.js"
+nix = {
+  channel = "stable-22_11"
+} 

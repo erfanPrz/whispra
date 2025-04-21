@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: whispra-frontend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: serve -s build
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_API_URL
+        value: https://whispra-backend.onrender.com 
