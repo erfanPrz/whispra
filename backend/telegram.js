@@ -6,8 +6,8 @@ const User = require('./models/User');
 // Load environment variables
 dotenv.config();
 
-// Basic configuration check
-console.log('Starting bot with configuration:');
+// Log configuration
+console.log('Bot Configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
 console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
 console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
@@ -19,9 +19,10 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   process.exit(1);
 }
 
-// Initialize bot with basic polling
+// Initialize bot
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-  polling: true
+  polling: true,
+  filepath: false
 });
 
 // Test bot connection
@@ -35,7 +36,6 @@ bot.getMe()
   })
   .catch((error) => {
     console.error('Failed to start bot:', error);
-    process.exit(1);
   });
 
 // Handle /start command
@@ -49,7 +49,7 @@ bot.onText(/\/start/, async (msg) => {
     // Connect to database
     const db = await connectDB();
     if (!db) {
-      throw new Error('Failed to connect to database');
+      throw new Error('Database connection failed');
     }
 
     // Find or create user
@@ -67,7 +67,7 @@ bot.onText(/\/start/, async (msg) => {
     }
 
     // Generate user's link
-    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-frontend.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
     // Send welcome message
@@ -95,7 +95,7 @@ Share this link with others to receive anonymous messages.
 
   } catch (error) {
     console.error('Error in /start command:', error);
-    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
+    await bot.sendMessage(chatId, `Sorry, something went wrong: ${error.message}`);
   }
 });
 
@@ -110,7 +110,7 @@ bot.onText(/\/link/, async (msg) => {
     // Connect to database
     const db = await connectDB();
     if (!db) {
-      throw new Error('Failed to connect to database');
+      throw new Error('Database connection failed');
     }
 
     // Find or create user
@@ -128,7 +128,7 @@ bot.onText(/\/link/, async (msg) => {
     }
 
     // Generate user's link
-    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-nine.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://whispra-frontend.vercel.app';
     const userLink = `${frontendUrl}/${username.toLowerCase()}`;
 
     // Send link message
@@ -146,7 +146,7 @@ Share this link to receive anonymous messages!
 
   } catch (error) {
     console.error('Error in /link command:', error);
-    await bot.sendMessage(chatId, 'Sorry, something went wrong. Please try again later.');
+    await bot.sendMessage(chatId, `Sorry, something went wrong: ${error.message}`);
   }
 });
 
