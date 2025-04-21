@@ -5,9 +5,13 @@ buildCommand = "npm install"
 [deploy]
 startCommand = "node api/index.js"
 healthcheckPath = "/test"
-healthcheckTimeout = 100
+healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
+minReplicas = 1
+maxReplicas = 1
 
 [deploy.envs]
-NODE_ENV = "production" 
+NODE_ENV = "production"
+NODE_VERSION = "18.x"
+PORT = "3000" 

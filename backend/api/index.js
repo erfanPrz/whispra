@@ -12,11 +12,13 @@ dotenv.config();
 // Log all environment variables (without sensitive data)
 console.log('Environment Configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- PORT:', process.env.PORT || 3000);
 console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
 console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
 console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
 
 const app = express();
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -48,10 +50,10 @@ const initializeDB = async () => {
           console.error('Database test query failed:', error);
         }
       } else {
-        console.log('MongoDB connection failed or not configured');
+        console.error('Failed to connect to MongoDB');
       }
     } catch (error) {
-      console.error('Failed to connect to MongoDB:', error);
+      console.error('Error connecting to MongoDB:', error);
     }
   }
   return dbConnection;
@@ -367,6 +369,12 @@ app.use((err, req, res, next) => {
     error: 'Something went wrong!',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+  initializeDB().catch(console.error);
 });
 
 // Export the Express API
