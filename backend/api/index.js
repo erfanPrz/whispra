@@ -9,13 +9,14 @@ const Message = require('../models/Message');
 // Load environment variables
 dotenv.config();
 
-// Log all environment variables (without sensitive data)
-console.log('Environment Configuration:');
+// Log configuration
+console.log('Server Configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
 console.log('- PORT:', process.env.PORT || 3000);
 console.log('- MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
 console.log('- TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Not Set');
 console.log('- FRONTEND_URL:', process.env.FRONTEND_URL || 'Not Set');
+console.log('- BACKEND_URL:', process.env.BACKEND_URL || 'Not Set');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -37,7 +38,7 @@ const initializeDB = async () => {
   if (!dbConnection) {
     try {
       console.log('Attempting to connect to MongoDB...');
-      console.log('Connection string:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
+      console.log('Connection string format:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
       
       dbConnection = await connectDB();
       if (dbConnection) {
@@ -61,6 +62,12 @@ const initializeDB = async () => {
 
 // Initialize database connection
 initializeDB().catch(console.error);
+
+// Telegram webhook endpoint
+app.post(`/bot${process.env.TELEGRAM_BOT_TOKEN}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 
 // Test bot endpoint
 app.get('/test-bot', async (req, res) => {
@@ -91,22 +98,12 @@ app.get('/test-bot', async (req, res) => {
 app.get('/test-db', async (req, res) => {
   try {
     console.log('Testing database connection...');
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not Set');
-    
-    const db = getConnection();
+    const db = await initializeDB();
     if (!db) {
-      // Try to establish a new connection
-      console.log('No cached connection found, attempting new connection...');
-      const newConnection = await connectDB();
-      if (!newConnection) {
-        throw new Error('Failed to establish database connection');
-      }
-      console.log('New connection established successfully');
+      throw new Error('Database connection failed');
     }
     
     // Test database with a simple query
-    console.log('Performing test query...');
     const testUser = await User.findOne({});
     console.log('Database test query successful');
     
@@ -124,55 +121,27 @@ app.get('/test-db', async (req, res) => {
     res.status(500).json({
       status: 'error',
       error: 'Database test failed',
-      details: error.message,
-      environment: process.env.NODE_ENV,
-      mongodb_uri: process.env.MONGODB_URI ? 'Set' : 'Not Set'
+      details: error.message
     });
   }
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
-  try {
-    console.log('Root endpoint hit');
-    const dbStatus = getConnection() ? 'connected' : 'disconnected';
-    res.json({ 
-      message: 'Welcome to the API',
-      status: 'ok',
-      database: dbStatus,
-      environment: process.env.NODE_ENV || 'development'
-    });
-  } catch (error) {
-    console.error('Error in root endpoint:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
+  res.json({
+    message: 'Welcome to Whispra API',
+    status: 'ok',
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Test endpoint
 app.get('/test', (req, res) => {
-  try {
-    console.log('Test endpoint hit');
-    const dbStatus = getConnection() ? 'connected' : 'disconnected';
-    res.json({ 
-      message: 'Backend is working!',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      database: dbStatus,
-      services: {
-        telegram: process.env.TELEGRAM_BOT_TOKEN ? 'configured' : 'not configured',
-        mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
-      }
-    });
-  } catch (error) {
-    console.error('Error in test endpoint:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
+  res.json({
+    message: 'Backend is working!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Connect user with Telegram
