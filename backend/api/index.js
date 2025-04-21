@@ -344,9 +344,15 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     // Initialize database first
-    await initializeDB();
+    console.log('Initializing database connection...');
+    const db = await initializeDB();
+    if (!db) {
+      throw new Error('Failed to connect to database');
+    }
+    console.log('Database connected successfully');
     
     // Start bot polling
+    console.log('Starting bot polling...');
     bot.startPolling({
       polling: {
         interval: 300,
@@ -355,6 +361,14 @@ const startServer = async () => {
           timeout: 10
         }
       }
+    });
+    
+    // Test bot connection
+    const botInfo = await bot.getMe();
+    console.log('Bot started successfully:', {
+      username: botInfo.username,
+      id: botInfo.id,
+      name: botInfo.first_name
     });
     
     // Start server
