@@ -340,11 +340,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Start server and initialize bot polling
 const startServer = async () => {
   try {
     // Initialize database first
     await initializeDB();
+    
+    // Start bot polling
+    bot.startPolling({
+      polling: {
+        interval: 300,
+        autoStart: true,
+        params: {
+          timeout: 10
+        }
+      }
+    });
     
     // Start server
     app.listen(port, () => {

@@ -19,31 +19,20 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
   process.exit(1);
 }
 
-// Initialize bot with polling
+// Initialize bot without polling
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
-
-// Start polling
-bot.startPolling({
-  polling: {
-    interval: 300,
-    autoStart: true,
-    params: {
-      timeout: 10
-    }
-  }
-});
 
 // Test bot connection
 bot.getMe()
   .then((botInfo) => {
-    console.log('Bot started successfully:', {
+    console.log('Bot initialized successfully:', {
       username: botInfo.username,
       id: botInfo.id,
       name: botInfo.first_name
     });
   })
   .catch((error) => {
-    console.error('Failed to start bot:', error);
+    console.error('Failed to initialize bot:', error);
   });
 
 // Handle /start command
